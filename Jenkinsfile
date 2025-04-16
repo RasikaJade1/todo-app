@@ -1,7 +1,7 @@
 pipeline {
     agent any
     tools {
-        nodejs 'Node18' // Refers to Node.js installation named 'Node18' in Global Tool Configuration
+        nodejs 'Node 18' // Updated to match Jenkins Node.js installation name
     }
     stages {
         stage('Checkout') {
