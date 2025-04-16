@@ -1,7 +1,7 @@
 pipeline {
     agent any
     tools {
-        nodejs 'Node 18' // Updated to match Jenkins Node.js installation name
+        nodejs 'Node 18' // Matches Node.js installation name in Jenkins
     }
     stages {
         stage('Checkout') {
@@ -12,26 +12,26 @@ pipeline {
         }
         stage('Install Dependencies') {
             steps {
-                // Install npm dependencies
-                sh 'npm ci'
+                // Install npm dependencies using Windows batch command
+                bat 'npm ci'
             }
         }
         stage('Lint') {
             steps {
                 // Run linting (optional, continues if not configured)
-                sh 'npm run lint || true'
+                bat 'npm run lint || exit /b 0'
             }
         }
         stage('Test') {
             steps {
                 // Run tests (optional, continues if not configured)
-                sh 'npm test || true'
+                bat 'npm test || exit /b 0'
             }
         }
         stage('Build') {
             steps {
                 // Build the React app
-                sh 'npm run build'
+                bat 'npm run build'
             }
         }
         stage('Archive Artifacts') {
