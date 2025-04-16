@@ -1,7 +1,7 @@
 pipeline {
     agent any
     tools {
-        nodejs 'Node 18' // Matches Node.js installation name in Jenkins
+        nodejs 'Node 22' // Matches Node.js 22.x installation in Jenkins
     }
     stages {
         stage('Checkout') {
@@ -12,7 +12,7 @@ pipeline {
         }
         stage('Install Dependencies') {
             steps {
-                // Install npm dependencies using Windows batch command
+                // Install npm dependencies using npm ci (requires package-lock.json)
                 bat 'npm ci'
             }
         }
