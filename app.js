@@ -13,23 +13,27 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
 
+// Routes
+app.use('/', taskRoutes);
+
 // Database connection
 const connectDB = require('./config/db');
 
-// Start server only after DB connection
-async function startServer() {
-  try {
-    await connectDB();
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  } catch (err) {
-    console.error('Failed to start server:', err);
-    process.exit(1);
+// Start server only if run directly
+if (require.main === module) {
+  async function startServer() {
+    try {
+      await connectDB();
+      app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+      });
+    } catch (err) {
+      console.error('Failed to start server:', err);
+      process.exit(1);
+    }
   }
+  startServer();
 }
 
-startServer();
-
-// Routes
-app.use('/', taskRoutes);
+// Export the app
+module.exports = app;
