@@ -1,12 +1,12 @@
 pipeline {
     agent any
     tools {
-        nodejs 'Node18' // Refers to Node.js installation in Global Tool Configuration
+        nodejs 'Node18' // Refers to Node.js installation named 'Node18' in Global Tool Configuration
     }
     stages {
         stage('Checkout') {
             steps {
-                // Clone the repository, explicitly using the 'main' branch
+                // Clone the repository, using 'main' branch
                 git url: 'https://github.com/RasikaJade1/todo-app.git', branch: 'main'
             }
         }
