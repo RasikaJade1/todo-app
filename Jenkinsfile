@@ -6,7 +6,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                // Clone the repository
+                // Clone the repository, explicitly using the 'main' branch
                 git url: 'https://github.com/RasikaJade1/todo-app.git', branch: 'main'
             }
         }
