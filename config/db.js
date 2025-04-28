@@ -1,18 +1,18 @@
 const mongoose = require('mongoose');
 
-module.exports = async () => {
+const connectDB = async () => {
   try {
-    mongoose.set('debug', true); // Enable debug logging
+    mongoose.set('strictQuery', false); // Suppress warning
+    mongoose.set('debug', true); // Enable query logging
     await mongoose.connect(process.env.MONGO_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 30000,
-      connectTimeoutMS: 30000,
-      socketTimeoutMS: 45000,
     });
     console.log('MongoDB connected successfully');
   } catch (err) {
     console.error('MongoDB connection error:', err);
-    throw err; // Throw error to be caught in app.js
+    throw err;
   }
 };
+
+module.exports = connectDB;

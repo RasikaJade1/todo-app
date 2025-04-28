@@ -3,6 +3,9 @@ pipeline {
     tools {
         nodejs 'Node 22' // Matches Node.js 22.14.0
     }
+    environment {
+        MONGO_URI = 'mongodb://localhost:27017/testdb'
+    }
     stages {
         stage('Checkout') {
             steps {
@@ -14,14 +17,25 @@ pipeline {
                 bat 'npm ci'
             }
         }
+        stage('Start MongoDB') {
+            steps {
+                bat 'docker-compose up -d mongo'
+                bat 'ping 127.0.0.1 -n 6 > nul' // Wait ~5s
+            }
+        }
         stage('Test') {
             steps {
-                bat 'npm test || exit /b 0'
+                bat 'npm test'
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'coverage/**', allowEmptyArchive: true
+                }
             }
         }
         stage('Build Docker Image') {
             steps {
-                bat 'docker --version' // Verify Docker
+                bat 'docker --version'
                 bat 'docker build -t rasikajade/todo-app:latest .'
             }
         }
@@ -29,16 +43,23 @@ pipeline {
             steps {
                 script {
                     try {
+                        bat 'netstat -aon | findstr :3000 && taskkill /PID $(netstat -aon | findstr :3000 | awk "{print $5}") /F || exit /b 0'
                         bat 'docker-compose up -d --build'
-                        bat 'ping 127.0.0.1 -n 11 > nul' // Wait ~10 seconds
-                        bat 'curl http://localhost:3000 || exit /b 0' // Trigger homepage
-                        bat 'docker logs todo-app-ci-cd-app-1' // Capture logs
+                        bat 'ping 127.0.0.1 -n 11 > nul'
+                        bat 'curl http://localhost:3000 || exit /b 0'
+                        bat 'docker logs todo-app-ci-cd-app-1 > app_logs.txt'
+                        bat 'docker logs todo-app-ci-cd-app-1'
                     } catch (Exception e) {
                         echo "Error running Docker containers: ${e}"
                         currentBuild.result = 'UNSTABLE'
                     } finally {
-                        bat 'docker-compose down || exit /b 0' // Clean up
+                        bat 'docker-compose down || exit /b 0'
                     }
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'app_logs.txt', allowEmptyArchive: true
                 }
             }
         }
@@ -53,6 +74,7 @@ pipeline {
     }
     post {
         always {
+            bat 'docker-compose down || exit /b 0'
             cleanWs()
         }
         success {
