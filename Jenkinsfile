@@ -16,13 +16,12 @@ pipeline {
         }
         stage('Test') {
             steps {
-                withEnv(['MONGO_URI=mongodb://localhost:27017/todoapp']) {
-                    bat 'npm test || exit /b 0'
-                }
+                bat 'npm test || exit /b 0'
             }
         }
         stage('Build Docker Image') {
             steps {
+                bat 'docker --version' // Verify Docker
                 bat 'docker build -t rasikajade/todo-app:latest .'
             }
         }
@@ -31,13 +30,14 @@ pipeline {
                 script {
                     try {
                         bat 'docker-compose up -d --build'
-                        bat 'timeout /t 10 /nobreak' // Wait 10 seconds for containers to start
-                        bat 'docker logs todo-app_app_1' // Capture app container logs
+                        bat 'ping 127.0.0.1 -n 11 > nul' // Wait ~10 seconds
+                        bat 'curl http://localhost:3000 || exit /b 0' // Trigger homepage
+                        bat 'docker logs todo-app-ci-cd-app-1' // Capture logs
                     } catch (Exception e) {
                         echo "Error running Docker containers: ${e}"
                         currentBuild.result = 'UNSTABLE'
                     } finally {
-                        bat 'docker-compose down' // Clean up containers
+                        bat 'docker-compose down || exit /b 0' // Clean up
                     }
                 }
             }
