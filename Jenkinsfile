@@ -21,8 +21,14 @@ pipeline {
             steps {
                 script {
                     try {
+                        // Clean up stale containers and networks
                         bat 'docker-compose down || exit /b 0'
-                        bat 'netstat -aon | findstr :27017 && taskkill /PID $(netstat -aon | findstr :27017 | awk "{print $5}") /F || exit /b 0'
+                        // Free port 27017 if in use
+                        bat '''
+                        for /f "tokens=5" %%a in ('netstat -aon ^| findstr :27017') do (
+                            taskkill /PID %%a /F || exit /b 0
+                        )
+                        '''
                         bat 'docker-compose up -d mongo'
                         bat 'ping 127.0.0.1 -n 6 > nul'
                     } catch (Exception e) {
@@ -52,7 +58,11 @@ pipeline {
             steps {
                 script {
                     try {
-                        bat 'netstat -aon | findstr :3000 && taskkill /PID $(netstat -aon | findstr :3000 | awk "{print $5}") /F || exit /b 0'
+                        bat '''
+                        for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3000') do (
+                            taskkill /PID %%a /F || exit /b 0
+                        )
+                        '''
                         bat 'docker-compose up -d --build'
                         bat 'ping 127.0.0.1 -n 11 > nul'
                         bat 'curl http://localhost:3000 || exit /b 0'
