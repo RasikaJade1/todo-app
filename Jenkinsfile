@@ -21,9 +21,7 @@ pipeline {
             steps {
                 script {
                     try {
-                        // Clean up stale containers and networks
                         bat 'docker-compose down || exit /b 0'
-                        // Free port 27017 if in use
                         bat '''
                         for /f "tokens=5" %%a in ('netstat -aon ^| findstr :27017') do (
                             taskkill /PID %%a /F || exit /b 0
@@ -63,13 +61,16 @@ pipeline {
                             taskkill /PID %%a /F || exit /b 0
                         )
                         '''
-                        bat 'docker-compose up -d --build'
+                        bat 'docker-compose up -d --build || exit /b 1'
                         bat 'ping 127.0.0.1 -n 11 > nul'
+                        bat 'docker ps'
+                        bat 'docker logs todo-app-ci-cd-app-1'
                         bat 'curl http://localhost:3000 || exit /b 0'
                         bat 'docker logs todo-app-ci-cd-app-1 > app_logs.txt'
                         bat 'docker logs todo-app-ci-cd-app-1'
                     } catch (Exception e) {
                         echo "Error running Docker containers: ${e}"
+                        bat 'docker-compose logs'
                         currentBuild.result = 'UNSTABLE'
                     } finally {
                         bat 'docker-compose down || exit /b 0'
