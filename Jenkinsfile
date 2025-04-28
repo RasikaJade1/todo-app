@@ -1,7 +1,7 @@
 pipeline {
     agent any
     tools {
-        nodejs 'Node 22' // Matches Node.js 22.14.0
+        nodejs 'Node 22'
     }
     environment {
         MONGO_URI = 'mongodb://localhost:27017/testdb'
@@ -19,8 +19,17 @@ pipeline {
         }
         stage('Start MongoDB') {
             steps {
-                bat 'docker-compose up -d mongo'
-                bat 'ping 127.0.0.1 -n 6 > nul' // Wait ~5s
+                script {
+                    try {
+                        bat 'docker-compose down || exit /b 0'
+                        bat 'netstat -aon | findstr :27017 && taskkill /PID $(netstat -aon | findstr :27017 | awk "{print $5}") /F || exit /b 0'
+                        bat 'docker-compose up -d mongo'
+                        bat 'ping 127.0.0.1 -n 6 > nul'
+                    } catch (Exception e) {
+                        echo "Error starting MongoDB: ${e}"
+                        throw e
+                    }
+                }
             }
         }
         stage('Test') {
@@ -36,7 +45,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 bat 'docker --version'
-                bat 'docker build -t rasikajade/todo-app:latest .'
+                bat 'docker build -t rasika23/todo-app:latest .'
             }
         }
         stage('Run Docker Containers') {
@@ -67,7 +76,7 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
                     bat 'echo %DOCKER_PASSWORD% | docker login -u %DOCKER_USERNAME% --password-stdin'
-                    bat 'docker push rasikajade/todo-app:latest'
+                    bat 'docker push rasika23/todo-app:latest'
                 }
             }
         }
