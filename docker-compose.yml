@@ -1,8 +1,19 @@
+version: '3.8'
 services:
+  mongo:
+    image: mongo:latest
+    container_name: todo-app-mongo
+    ports:
+      - "27017:27017"
+    networks:
+      - app-network
+    volumes:
+      - mongo-data:/data/db
   app:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: todo-app
     ports:
       - "3000:3000"
     environment:
@@ -11,12 +22,8 @@ services:
       - mongo
     networks:
       - app-network
-  mongo:
-    image: mongo:latest
-    ports:
-      - "27017:27017"
-    networks:
-      - app-network
 networks:
   app-network:
     driver: bridge
+volumes:
+  mongo-data:
