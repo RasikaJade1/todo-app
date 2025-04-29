@@ -4,6 +4,7 @@ pipeline {
         nodejs 'Node 22'
     }
     environment {
+        DOCKER_HOST = 'npipe:////./pipe/docker_engine'
         MONGO_URI = 'mongodb://localhost:27017/testdb'
     }
     stages {
@@ -18,35 +19,35 @@ pipeline {
             }
         }
         stage('Start MongoDB') {
-    steps {
-        script {
-            try {
-                // Verify tools
-                bat 'docker info || exit 1'
-                bat 'docker-compose --version || exit 1'
-                // Validate configuration
-                bat 'docker-compose -p todo-app config || exit 1'
-                // Stop existing services
-                bat 'docker-compose -p todo-app down || exit /b 0'
-                // Clear port 27017
-                bat 'netstat -aon | findstr :27017 > nul && (for /f "tokens=5" %%a in (\'netstat -aon ^| findstr :27017\') do taskkill /PID %%a /F) || echo No process on port 27017'
-                // Start MongoDB
-                bat 'docker-compose -p todo-app up -d mongo || exit 1'
-                // Wait for container
-                bat 'ping 127.0.0.1 -n 11 > nul'
-                // Check containers
-                bat 'docker ps -a'
-                // Log container
-                bat 'docker logs todo-app-mongo || exit /b 0'
-            } catch (Exception e) {
-                echo "Error starting MongoDB: ${e}"
-                bat 'docker-compose -p todo-app logs mongo || exit /b 0'
-                bat 'docker ps -a'
-                throw e
+            steps {
+                script {
+                    try {
+                        // Verify Docker and Docker Compose
+                        bat 'docker info || exit 1'
+                        bat 'docker-compose --version || exit 1'
+                        // Validate docker-compose.yml
+                        bat 'docker-compose -p todo-app config || exit 1'
+                        // Stop existing services
+                        bat 'docker-compose -p todo-app down || exit /b 0'
+                        // Clear port 27017
+                        bat 'netstat -aon | findstr :27017 > nul && (for /f "tokens=5" %%a in (\'netstat -aon ^| findstr :27017\') do taskkill /PID %%a /F) || echo No process on port 27017'
+                        // Start MongoDB
+                        bat 'docker-compose -p todo-app up -d mongo || exit 1'
+                        // Wait for container to initialize
+                        bat 'ping 127.0.0.1 -n 11 > nul'
+                        // Check running containers
+                        bat 'docker ps -a'
+                        // Log MongoDB container
+                        bat 'docker logs todo-app-mongo || exit /b 0'
+                    } catch (Exception e) {
+                        echo "Error starting MongoDB: ${e}"
+                        bat 'docker-compose -p todo-app logs mongo || exit /b 0'
+                        bat 'docker ps -a'
+                        throw e
+                    }
+                }
             }
         }
-    }
-}
         stage('Test') {
             steps {
                 bat 'npm test'
@@ -67,20 +68,27 @@ pipeline {
             steps {
                 script {
                     try {
+                        // Clear port 3000
                         bat 'netstat -aon | findstr :3000 > nul && (for /f "tokens=5" %%a in (\'netstat -aon ^| findstr :3000\') do taskkill /PID %%a /F) || echo No process on port 3000'
-                        bat 'docker-compose up -d --build || exit /b 1'
+                        // Start all services
+                        bat 'docker-compose -p todo-app up -d --build || exit /b 1'
+                        // Wait for containers
                         bat 'ping 127.0.0.1 -n 11 > nul'
+                        // Check running containers
                         bat 'docker ps'
-                        bat 'docker logs todo-app-ci-cd-app-1'
+                        // Log app container
+                        bat 'docker logs todo-app || exit /b 0'
+                        // Verify app is running
                         bat 'curl http://localhost:3000 || exit /b 0'
-                        bat 'docker logs todo-app-ci-cd-app-1 > app_logs.txt'
-                        bat 'docker logs todo-app-ci-cd-app-1'
+                        // Save logs
+                        bat 'docker logs todo-app > app_logs.txt'
+                        bat 'docker logs todo-app'
                     } catch (Exception e) {
                         echo "Error running Docker containers: ${e}"
-                        bat 'docker-compose logs'
+                        bat 'docker-compose -p todo-app logs'
                         currentBuild.result = 'UNSTABLE'
                     } finally {
-                        bat 'docker-compose down || exit /b 0'
+                        bat 'docker-compose -p todo-app down || exit /b 0'
                     }
                 }
             }
@@ -101,7 +109,7 @@ pipeline {
     }
     post {
         always {
-            bat 'docker-compose down || exit /b 0'
+            bat 'docker-compose -p todo-app down || exit /b 0'
             cleanWs()
         }
         success {
