@@ -36,12 +36,12 @@ pipeline {
                 script {
                     try {
                         bat 'docker-compose -p todo-app down > mongo_down.log 2>&1 || exit /b 0'
-                        bat 'netstat -aon | findstr :27017 > nul && (for /f "tokens=5" %%a in (\'netstat -aon ^| findstr :27017\') do taskkill /PID %%a /F) || echo No process on port 27017'
+                        bat 'for /f "tokens=5" %%a in (\'netstat -aon ^| findstr :27017 ^| findstr /V "^0"\') do taskkill /PID %%a /F 2>nul || echo No process on port 27017'
                         bat 'docker-compose -p todo-app up -d mongo > mongo_start.log 2>&1 || exit /b 1'
-                        bat 'ping 127.0.0.1 -n 10 > nul' // Increased delay to ensure container starts
+                        bat 'ping 127.0.0.1 -n 10 > nul'
                         bat 'docker ps > docker_ps.log 2>&1'
                         bat 'docker logs todo-app-mongo > mongo_logs.log 2>&1 || exit /b 0'
-                        bat 'if not exist mongo_logs.log exit /b 1' // Fail if logs are not created
+                        bat 'if not exist mongo_logs.log exit /b 1'
                     } catch (Exception e) {
                         echo "Error starting MongoDB: ${e}"
                         bat 'type mongo_start.log || echo No mongo_start.log created'
@@ -81,7 +81,7 @@ pipeline {
                     try {
                         bat 'netstat -aon | findstr :3000 > nul && (for /f "tokens=5" %%a in (\'netstat -aon ^| findstr :3000\') do taskkill /PID %%a /F) || echo No process on port 3000'
                         bat 'docker-compose -p todo-app up -d --build > app_start.log 2>&1 || exit /b 1'
-                        bat 'ping 127.0.0.1 -n 15 > nul' // Increased delay for app startup
+                        bat 'ping 127.0.0.1 -n 15 > nul'
                         bat 'docker ps > docker_ps.log 2>&1'
                         bat 'docker logs todo-app > app_logs.txt 2>&1 || exit /b 0'
                         bat 'curl http://localhost:3000 || exit /b 0'
