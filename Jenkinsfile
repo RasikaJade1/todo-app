@@ -18,23 +18,35 @@ pipeline {
             }
         }
         stage('Start MongoDB') {
-            steps {
-                script {
-                    try {
-                        bat 'docker-compose down || exit /b 0'
-                        bat 'netstat -aon | findstr :27017 > nul && (for /f "tokens=5" %%a in (\'netstat -aon ^| findstr :27017\') do taskkill /PID %%a /F) || echo No process on port 27017'
-                        bat 'docker-compose up -d mongo'
-                        bat 'ping 127.0.0.1 -n 6 > nul'
-                        bat 'docker ps'
-                        bat 'docker logs todo-app-ci-cd-mongo-1'
-                    } catch (Exception e) {
-                        echo "Error starting MongoDB: ${e}"
-                        bat 'docker-compose logs mongo || exit /b 0'
-                        throw e
-                    }
-                }
+    steps {
+        script {
+            try {
+                // Verify tools
+                bat 'docker info || exit 1'
+                bat 'docker-compose --version || exit 1'
+                // Validate configuration
+                bat 'docker-compose -p todo-app config || exit 1'
+                // Stop existing services
+                bat 'docker-compose -p todo-app down || exit /b 0'
+                // Clear port 27017
+                bat 'netstat -aon | findstr :27017 > nul && (for /f "tokens=5" %%a in (\'netstat -aon ^| findstr :27017\') do taskkill /PID %%a /F) || echo No process on port 27017'
+                // Start MongoDB
+                bat 'docker-compose -p todo-app up -d mongo || exit 1'
+                // Wait for container
+                bat 'ping 127.0.0.1 -n 11 > nul'
+                // Check containers
+                bat 'docker ps -a'
+                // Log container
+                bat 'docker logs todo-app-mongo || exit /b 0'
+            } catch (Exception e) {
+                echo "Error starting MongoDB: ${e}"
+                bat 'docker-compose -p todo-app logs mongo || exit /b 0'
+                bat 'docker ps -a'
+                throw e
             }
         }
+    }
+}
         stage('Test') {
             steps {
                 bat 'npm test'
