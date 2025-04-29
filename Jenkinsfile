@@ -99,7 +99,7 @@ pipeline {
                         // Verify app is running
                         bat 'curl http://localhost:3000 || exit /b 0'
                         // Save logs
-                        bat 'docker logs todo-app > app_logs NASA's.txt'
+                        bat 'docker logs todo-app > app_logs.txt'
                         bat 'docker logs todo-app'
                         // Archive log file
                         archiveArtifacts artifacts: 'app_start.log', allowEmptyArchive: true
