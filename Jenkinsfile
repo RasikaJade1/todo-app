@@ -22,15 +22,14 @@ pipeline {
                 script {
                     try {
                         bat 'docker-compose down || exit /b 0'
-                        bat '''
-                        for /f "tokens=5" %%a in ('netstat -aon ^| findstr :27017') do (
-                            taskkill /PID %%a /F || exit /b 0
-                        )
-                        '''
+                        bat 'netstat -aon | findstr :27017 > nul && (for /f "tokens=5" %%a in (\'netstat -aon ^| findstr :27017\') do taskkill /PID %%a /F) || echo No process on port 27017'
                         bat 'docker-compose up -d mongo'
                         bat 'ping 127.0.0.1 -n 6 > nul'
+                        bat 'docker ps'
+                        bat 'docker logs todo-app-ci-cd-mongo-1'
                     } catch (Exception e) {
                         echo "Error starting MongoDB: ${e}"
+                        bat 'docker-compose logs mongo || exit /b 0'
                         throw e
                     }
                 }
@@ -56,11 +55,7 @@ pipeline {
             steps {
                 script {
                     try {
-                        bat '''
-                        for /f "tokens=5" %%a in ('netstat -aon ^| findstr :3000') do (
-                            taskkill /PID %%a /F || exit /b 0
-                        )
-                        '''
+                        bat 'netstat -aon | findstr :3000 > nul && (for /f "tokens=5" %%a in (\'netstat -aon ^| findstr :3000\') do taskkill /PID %%a /F) || echo No process on port 3000'
                         bat 'docker-compose up -d --build || exit /b 1'
                         bat 'ping 127.0.0.1 -n 11 > nul'
                         bat 'docker ps'
