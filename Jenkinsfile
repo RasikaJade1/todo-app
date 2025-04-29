@@ -36,7 +36,9 @@ pipeline {
                 script {
                     try {
                         bat 'docker-compose -p todo-app down > mongo_down.log 2>&1 || exit /b 0'
+                        bat 'docker volume rm todo-app_mongo-data > volume_rm.log 2>&1 || exit /b 0'
                         bat 'for /f "tokens=5" %%a in (\'netstat -aon ^| findstr :27017 ^| findstr /V "^0"\') do taskkill /PID %%a /F 2>nul || echo No process on port 27017'
+                        bat 'docker-compose -p todo-app config > compose_config.log 2>&1 || exit /b 1'
                         bat 'docker-compose -p todo-app up -d mongo > mongo_start.log 2>&1 || exit /b 1'
                         bat 'ping 127.0.0.1 -n 10 > nul'
                         bat 'docker ps > docker_ps.log 2>&1'
@@ -44,8 +46,10 @@ pipeline {
                         bat 'if not exist mongo_logs.log exit /b 1'
                     } catch (Exception e) {
                         echo "Error starting MongoDB: ${e}"
+                        bat 'type compose_config.log || echo No compose_config.log created'
                         bat 'type mongo_start.log || echo No mongo_start.log created'
                         bat 'type mongo_down.log || echo No mongo_down.log created'
+                        bat 'type volume_rm.log || echo No volume_rm.log created'
                         bat 'type mongo_logs.log || echo No mongo_logs.log created'
                         bat 'type docker_ps.log || echo No docker_ps.log created'
                         bat 'docker-compose -p todo-app logs mongo || exit /b 0'
@@ -79,7 +83,7 @@ pipeline {
             steps {
                 script {
                     try {
-                        bat 'netstat -aon | findstr :3000 > nul && (for /f "tokens=5" %%a in (\'netstat -aon ^| findstr :3000\') do taskkill /PID %%a /F) || echo No process on port 3000'
+                        bat 'for /f "tokens=5" %%a in (\'netstat -aon ^| findstr :3000 ^| findstr /V "^0"\') do taskkill /PID %%a /F 2>nul || echo No process on port 3000'
                         bat 'docker-compose -p todo-app up -d --build > app_start.log 2>&1 || exit /b 1'
                         bat 'ping 127.0.0.1 -n 15 > nul'
                         bat 'docker ps > docker_ps.log 2>&1'
@@ -114,6 +118,7 @@ pipeline {
     post {
         always {
             bat 'docker-compose -p todo-app down > final_down.log 2>&1 || exit /b 0'
+            bat 'docker volume rm todo-app_mongo-data > final_volume_rm.log 2>&1 || exit /b 0'
             script {
                 try {
                     cleanWs()
@@ -121,6 +126,8 @@ pipeline {
                     echo "Workspace cleanup failed: ${e}. Attempting manual cleanup."
                     bat 'taskkill /IM node.exe /F || exit /b 0'
                     bat 'taskkill /IM docker.exe /F || exit /b 0'
+                    bat 'taskkill /IM com.docker.backend.exe /F || exit /b 0'
+                    bat 'ping 127.0.0.1 -n 5 > nul'
                     bat 'rmdir /S /Q node_modules || exit /b 0'
                     bat 'docker volume rm todo-app_mongo-data || exit /b 0'
                     cleanWs()
