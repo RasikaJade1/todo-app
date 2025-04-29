@@ -1,14 +1,4 @@
-version: '3.8'
 services:
-  mongo:
-    image: mongo:latest
-    container_name: todo-app-mongo
-    ports:
-      - "27017:27017"
-    networks:
-      - app-network
-    volumes:
-      - mongo-data:/data/db
   app:
     build:
       context: .
@@ -20,6 +10,15 @@ services:
       - MONGO_URI=mongodb://mongo:27017/todoapp
     depends_on:
       - mongo
+    networks:
+      - app-network
+  mongo:
+    container_name: todo-app-mongo
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
     networks:
       - app-network
 networks:
